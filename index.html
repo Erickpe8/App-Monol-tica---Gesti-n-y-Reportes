@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>App Monolítica Grande - Práctica de Debug</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1, h2 { margin-bottom: 5px; }
+    .container { display: flex; gap: 20px; }
+    .panel { border: 1px solid #ccc; padding: 10px; flex: 1; }
+    label { display: block; margin-top: 5px; }
+    input { padding: 4px; width: 95%; }
+    button { margin-top: 8px; padding: 5px 10px; }
+    ul { padding-left: 20px; }
+    .log { font-size: 12px; background: #f9f9f9; border: 1px dashed #ccc; padding: 5px; margin-top: 10px; max-height: 120px; overflow-y: auto; }
+    .error { color: red; }
+    .ok { color: green; }
+  </style>
+</head>
+<body>
+  <h1>App Monolítica - Gestión y Reportes</h1>
+  <p>
+    Esta app contiene <strong>usuarios</strong>, <strong>productos</strong> y un <strong>reporte</strong>, todo en un solo archivo.
+  </p>
+
+  <div class="container">
+    <div class="panel" id="panel-usuarios">
+      <h2>Usuarios</h2>
+      <form id="form-usuario">
+        <label>Nombre de usuario:
+          <input type="text" id="usuario-nombre" />
+        </label>
+        <button type="submit">Agregar usuario</button>
+      </form>
+      <h3>Lista de usuarios</h3>
+      <ul id="lista-usuarios"></ul>
+    </div>
+
+    <div class="panel" id="panel-productos">
+      <h2>Productos</h2>
+      <form id="form-producto">
+        <label>Nombre de producto:
+          <input type="text" id="producto-nombre" />
+        </label>
+        <label>Precio:
+          <input type="number" id="producto-precio" />
+        </label>
+        <button type="submit">Agregar producto</button>
+      </form>
+      <h3>Lista de productos</h3>
+      <ul id="lista-productos"></ul>
+    </div>
+
+    <div class="panel" id="panel-reporte">
+      <h2>Reporte general</h2>
+      <p>Total de usuarios: <span id="reporte-usuarios">0</span></p>
+      <p>Total de productos: <span id="reporte-productos">0</span></p>
+      <p>Promedio de precio de productos: <span id="reporte-promedio">0</span></p>
+      <button id="btn-actualizar-reporte">Actualizar reporte</button>
+
+      <h3>Log interno</h3>
+      <div id="log" class="log"></div>
+    </div>
+  </div>
+
+  <script>
+    var usuarios = [];
+    var productos = [];
+
+    function log(mensaje, tipo) {
+      var logDiv = document.getElementById('log');
+      var span = document.createElement('div');
+      span.textContent = new Date().toLocaleTimeString() + ' - ' + mensaje;
+      if (tipo === 'error') span.className = 'error';
+      if (tipo === 'ok') span.className = 'ok';
+      logDiv.appendChild(span);
+      logDiv.scrollTop = logDiv.scrollHeight;
+      console.log('[LOG]', mensaje);
+    }
+
+    var formUsuario = document.getElementById('form-usuario');
+    var inputUsuarioNombre = document.getElementById('usuario-nombre');
+    var listaUsuarios = document.getElementById('lista-usuarios');
+
+    formUsuario.addEventListener('submit', function (event) {
+      event.preventDefault();
+
+      var nombre = inputUsuarioNombre.value.trim();
+
+      if (!nombre) {
+        log('Nombre de usuario vacío', 'error');
+        return;
+      }
+
+      usuarios.push({
+        id: usuarios.length + 1,
+        nombre: nombre
+      });
+
+      renderUsuarios();
+      inputUsuarioNombre.value = '';
+      log('Usuario agregado: ' + nombre, 'ok');
+    });
+
+    function renderUsuarios() {
+      listaUsuarios.innerHTML = '';
+      usuarios.forEach(function(u) {
+        var li = document.createElement('li');
+        li.textContent = u.id + ' - ' + u.nombre;
+        listaUsuarios.appendChild(li);
+      });
+    }
+
+    var formProducto = document.getElementById('form-producto');
+    var inputProductoNombre = document.getElementById('producto-nombre');
+    var inputProductoPrecio = document.getElementById('producto-precio');
+    var listaProductos = document.getElementById('lista-productos');
+
+    formProducto.addEventListener('submit', function (event) {
+      event.preventDefault();
+
+      var nombreProducto = inputProductoNombre.value.trim();
+      var precio = parseFloat(inputProductoPrecio.value);
+
+      if (!nombreProducto) {
+        log('Nombre de producto vacío', 'error');
+        return;
+      }
+
+      if (isNaN(precio) || precio <= 0) {
+        log('Precio de producto inválido', 'error');
+        return;
+      }
+
+      productos.push({
+        id: productos.length + 1,
+        nombre: nombreProducto,
+        precio: precio
+      });
+
+      renderProductos();
+      inputProductoNombre.value = '';
+      inputProductoPrecio.value = '';
+      log('Producto agregado: ' + nombreProducto + ' ($' + precio + ')', 'ok');
+    });
+
+    function renderProductos() {
+      listaProductos.innerHTML = '';
+      productos.forEach(function(p) {
+        var li = document.createElement('li');
+        li.textContent = p.id + ' - ' + p.nombre + ' ($' + p.precio + ')';
+        listaProductos.appendChild(li);
+      });
+    }
+
+    var spanReporteUsuarios = document.getElementById('reporte-usuarios');
+    var spanReporteProductos = document.getElementById('reporte-productos');
+    var spanReportePromedio = document.getElementById('reporte-promedio');
+    var btnActualizarReporte = document.getElementById('btn-actualizar-reporte');
+
+    btnActualizarReporte.addEventListener('click', actualizarReporte);
+
+    function actualizarReporte() {
+      var totalUsuarios = usuarios.length;
+      var totalProductos = productos.length;
+
+      spanReporteUsuarios.textContent = totalUsuarios;
+      spanReporteProductos.textContent = totalProductos;
+
+      var sumaPrecios = 0;
+      productos.forEach(function(p) {
+        sumaPrecios += p.precio;
+      });
+
+      var promedio = totalProductos > 0 ? (sumaPrecios / totalProductos) : 0;
+      spanReportePromedio.textContent = promedio.toFixed(2);
+
+      log('Reporte actualizado', 'ok');
+    }
+
+
+    (function seedData() {
+      usuarios.push({ id: 1, nombre: 'Ana' });
+      usuarios.push({ id: 2, nombre: 'Luis' });
+
+      productos.push({ id: 1, nombre: 'Cuaderno', precio: 5000 });
+      productos.push({ id: 2, nombre: 'Lápiz', precio: 1000 });
+      productos.push({ id: 3, nombre: 'Borrador', precio: 800 });
+
+      renderUsuarios();
+      renderProductos();
+      actualizarReporte();
+      log('Datos iniciales cargados', 'ok');
+    })();
+  </script>
+</body>
+</html>
